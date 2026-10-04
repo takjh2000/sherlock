@@ -7,7 +7,7 @@
 3. 신입생 보드게임 추천 + AI 룰 설명
 
 ## 기술 스택
-- Backend: Java 21, Spring Boot 3.x, Gradle(Kotlin DSL), Spring Data JPA, Spring Security, Bean Validation
+- Backend: Java 21, Spring Boot 4.x, Gradle(Kotlin DSL), Spring Data JPA, Spring Security, Bean Validation
 - DB: PostgreSQL (운영), H2 (테스트)
 - Frontend: React + TypeScript + Vite
 - Test: JUnit 5, Spring Boot Test, MockMvc (백엔드) / Vitest + Testing Library (프론트)
