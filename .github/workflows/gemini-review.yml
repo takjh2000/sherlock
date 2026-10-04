@@ -1,0 +1,58 @@
+name: 'Gemini Review'
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: gemini-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@gemini-cli /review') &&
+       github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Gemini 리뷰 요청 및 코멘트 작성
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          gh pr diff "$PR" | head -n 3000 > diff.txt
+          touch CLAUDE.md GEMINI.md
+          jq -n --rawfile guide GEMINI.md --rawfile rules CLAUDE.md --rawfile diff diff.txt '{
+            systemInstruction: { parts: [ { text: ($guide + "\n\n# 프로젝트 규칙 (CLAUDE.md)\n" + $rules) } ] },
+            contents: [ { role: "user", parts: [ { text:
+              ("아래 Pull Request의 변경 내용(diff)을 GEMINI.md의 기준에 따라 리뷰해줘. 마크다운으로 작성해.\n\n" + $diff)
+            } ] } ]
+          }' > req.json
+
+          curl -sS -H "x-goog-api-key: $GEMINI_API_KEY" -H "Content-Type: application/json" \
+            "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent" \
+            -d @req.json > res.json
+
+          jq -r '.candidates[0].content.parts // [] | map(.text // "") | join("")' res.json > review.md
+          if [ ! -s review.md ]; then
+            echo "::error::Gemini 응답이 비어 있습니다. 원본 응답:"
+            cat res.json
+            exit 1
+          fi
+
+          { echo "## 🔎 Gemini 리뷰 (\`${MODEL}\`)"; echo; cat review.md; } > body.md
+          gh pr comment "$PR" --body-file body.md
