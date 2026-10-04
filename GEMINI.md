@@ -24,3 +24,10 @@
 ## 주의 사항
 - 모델명, 라이브러리 버전, API 같은 최신 정보는 너의 학습 시점 이후에 바뀌었을 수 있다.
   "존재하지 않는다"고 단정하지 말고 `[질문]`으로 확인을 요청한다.
+
+## 프로젝트 기술 스택
+- 백엔드는 **Spring Boot 4.x**(현재 4.1.1)를 사용한다. 3.x가 최신이라는 가정으로 판단하지 않는다.
+- Boot 4의 모듈화된 스타터는 정상이다. 예: `spring-boot-starter-webmvc`, `spring-boot-h2console`,
+  `spring-boot-starter-*-test`(data-jpa-test, security-test, validation-test, webmvc-test 등).
+- 버전이나 라이브러리 존재 여부가 의심되면 `[필수]`가 아니라 `[질문]`으로 남긴다.
+- 의존성/빌드 관련 판단은 CI 결과를 우선 신뢰한다. CI가 통과했다면 "빌드 실패"로 단정하지 않는다.
