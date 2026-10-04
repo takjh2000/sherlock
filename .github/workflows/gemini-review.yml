@@ -12,7 +12,6 @@ concurrency:
 
 jobs:
   review:
-    # PR 이벤트이거나, 오너가 PR에 "@gemini-cli /review" 코멘트를 남긴 경우에만 실행
     if: >-
       (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'issue_comment' &&
@@ -20,46 +19,40 @@ jobs:
        contains(github.event.comment.body, '@gemini-cli /review') &&
        github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
       contents: read
-      issues: write
       pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
-      - name: Run Gemini pull request review
-        uses: google-github-actions/run-gemini-cli@v0
+      - name: Gemini 리뷰 요청 및 코멘트 작성
         env:
-          GEMINI_CLI_TRUST_WORKSPACE: 'true'
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          gemini_model: ${{ vars.GEMINI_MODEL }}
-          gemini_debug: true
-          gemini_cli_version: ${{ vars.GEMINI_CLI_VERSION }}
-          workflow_name: gemini-review
-          github_pr_number: ${{ github.event.pull_request.number || github.event.issue.number }}
-          settings: |-
-            {
-              "model": { "maxSessionTurns": 25 },
-              "mcpServers": {
-                "github": {
-                  "command": "docker",
-                  "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
-                           "ghcr.io/github/github-mcp-server:v0.27.0"],
-                  "includeTools": ["add_comment_to_pending_review",
-                                   "pull_request_read",
-                                   "pull_request_review_write"],
-                  "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" }
-                }
-              },
-              "tools": { "core": [] }
-            }
-          extensions: |
-            ["https://github.com/gemini-cli-extensions/code-review"]
-          prompt: '/pr-code-review'
+          MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          gh pr diff "$PR" | head -c 150000 > diff.txt
+          touch CLAUDE.md GEMINI.md
+          jq -n --rawfile guide GEMINI.md --rawfile rules CLAUDE.md --rawfile diff diff.txt '{
+            systemInstruction: { parts: [ { text: ($guide + "\n\n# 프로젝트 규칙 (CLAUDE.md)\n" + $rules) } ] },
+            contents: [ { role: "user", parts: [ { text:
+              ("아래 Pull Request의 변경 내용(diff)을 GEMINI.md의 기준에 따라 리뷰해줘. 마크다운으로 작성해.\n\n" + $diff)
+            } ] } ]
+          }' > req.json
+
+          curl -sS -H "x-goog-api-key: $GEMINI_API_KEY" -H "Content-Type: application/json" \
+            "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent" \
+            -d @req.json > res.json
+
+          jq -r '.candidates[0].content.parts // [] | map(.text // "") | join("")' res.json > review.md
+          if [ ! -s review.md ]; then
+            echo "::error::Gemini 응답이 비어 있습니다. 원본 응답:"
+            cat res.json
+            exit 1
+          fi
+
+          { echo "## 🔎 Gemini 리뷰 (\`${MODEL}\`)"; echo; cat review.md; } > body.md
+          gh pr comment "$PR" --body-file body.md
