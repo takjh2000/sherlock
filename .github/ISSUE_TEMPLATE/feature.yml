@@ -1,0 +1,31 @@
+name: 기능 요청
+description: Claude에게 맡길 기능 단위 작업
+title: "[기능] "
+labels: ["claude-todo"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options: [대여 시스템, 홍보 사이트, 추천/룰 영상]
+    validations: { required: true }
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목표
+      description: 이 기능으로 무엇이 가능해져야 하나요?
+    validations: { required: true }
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 조건
+      description: 테스트 가능한 체크리스트로 작성
+      placeholder: |
+        - [ ] 대여 시 반납일 = 대여일 + 7일로 표시된다
+        - [ ] 대여 중인 게임은 대여 버튼이 비활성화된다
+    validations: { required: true }
+  - type: textarea
+    id: out
+    attributes:
+      label: 제외 범위
+      description: 이번 이슈에서 하지 않을 것
