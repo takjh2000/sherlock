@@ -34,7 +34,7 @@ jobs:
           MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
           PR: ${{ github.event.pull_request.number || github.event.issue.number }}
         run: |
-          gh pr diff "$PR" | head -c 150000 > diff.txt
+          gh pr diff "$PR" | head -n 3000 > diff.txt
           touch CLAUDE.md GEMINI.md
           jq -n --rawfile guide GEMINI.md --rawfile rules CLAUDE.md --rawfile diff diff.txt '{
             systemInstruction: { parts: [ { text: ($guide + "\n\n# 프로젝트 규칙 (CLAUDE.md)\n" + $rules) } ] },
