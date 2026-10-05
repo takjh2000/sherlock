@@ -84,6 +84,36 @@ export const gameApi = {
   detail: (id: number) => request<GameDetail>(`/api/games/${id}`),
 }
 
+export type Rental = {
+  id: number
+  gameId: number
+  gameName: string
+  rentedDate: string
+  dueDate: string
+  returnedDate: string | null
+  status: 'RENTED' | 'RETURNED'
+  // 반납 예정일까지 D-n (반납 완료면 null)
+  daysLeft: number | null
+  overdueDays: number
+}
+
+// 서버(ReturnRequest)의 분실/파손 신고 최대 길이
+export const MAX_REPORT_LENGTH = 1000
+
+export const rentalApi = {
+  rent: (gameId: number) =>
+    request<Rental>('/api/rentals', {
+      method: 'POST',
+      body: JSON.stringify({ gameId }),
+    }),
+  mine: () => request<Rental[]>('/api/rentals/me'),
+  returnRental: (id: number, report: string) =>
+    request<Rental>(`/api/rentals/${id}/return`, {
+      method: 'POST',
+      body: JSON.stringify({ report: report.trim() || null }),
+    }),
+}
+
 export const authApi = {
   me: () => request<Me>('/api/auth/me'),
   login: (studentId: string, password: string) =>

@@ -75,6 +75,11 @@ public class Rental {
 		return Math.max(0, ChronoUnit.DAYS.between(dueDate, end));
 	}
 
+	/** 반납 예정일까지 남은 일수(D-n). 연체면 음수. */
+	public long daysLeft(LocalDate today) {
+		return ChronoUnit.DAYS.between(today, dueDate);
+	}
+
 	public Long getId() {
 		return id;
 	}
