@@ -80,7 +80,7 @@ public class GameQueryService {
 			return counts;
 		}
 		for (Object[] row : rentalRepository.countByGameIdsAndStatus(ids, RentalStatus.RENTED)) {
-			counts.put((Long) row[0], (Long) row[1]);
+			counts.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
 		}
 		return counts;
 	}
