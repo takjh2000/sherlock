@@ -1,5 +1,6 @@
 package com.sherlock.config;
 
+import com.sherlock.repository.MemberRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 
@@ -20,7 +22,8 @@ public class SecurityConfig {
 
     // 공개 경로(헬스 체크, 로그인, 첫 비밀번호 설정, 로그아웃)만 열고 /api/admin/**은 ADMIN 전용이다.
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, MemberRepository memberRepository)
+            throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .securityContext(sc -> sc.securityContextRepository(securityContextRepository()))
@@ -34,6 +37,8 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler()))
                 // 폼 로그인/Basic 인증의 기본 동작(리다이렉트, 인증 창)을 쓰지 않는다.
+                // 비밀번호 초기화/비활성화된 계정의 기존 세션을 인가 직전에 무효화한다.
+                .addFilterBefore(new SessionValidationFilter(memberRepository), AuthorizationFilter.class)
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
         return http.build();

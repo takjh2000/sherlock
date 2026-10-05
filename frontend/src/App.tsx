@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { authApi, type Me } from './api'
+import AdminPage from './AdminPage'
 import GameDetailPage from './GameDetailPage'
 import GamesPage from './GamesPage'
 import MyRentalsPage from './MyRentalsPage'
@@ -18,6 +19,8 @@ function App() {
   const [gameId, setGameId] = useState<number | null>(null)
   // 내 대여 페이지 표시 여부
   const [showRentals, setShowRentals] = useState(false)
+  // 관리자 페이지 표시 여부 (ADMIN만)
+  const [showAdmin, setShowAdmin] = useState(false)
 
   // 새로고침해도 서버 세션(쿠키)으로 로그인 상태를 복원한다.
   useEffect(() => {
@@ -32,6 +35,7 @@ function App() {
     setMe(null)
     setGameId(null)
     setShowRentals(false)
+    setShowAdmin(false)
     setView('login')
   }
 
@@ -52,16 +56,40 @@ function App() {
             type="button"
             onClick={() => {
               setShowRentals(false)
+              setShowAdmin(false)
               setGameId(null)
             }}
           >
             게임 목록
           </button>{' '}
-          <button type="button" onClick={() => setShowRentals(true)}>
+          <button
+            type="button"
+            onClick={() => {
+              setShowAdmin(false)
+              setShowRentals(true)
+            }}
+          >
             내 대여
           </button>
+          {/* 관리자 메뉴는 ADMIN에게만 보인다(서버도 /api/admin/**을 ADMIN만 허용). */}
+          {me.role === 'ADMIN' && (
+            <>
+              {' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRentals(false)
+                  setShowAdmin(true)
+                }}
+              >
+                관리자
+              </button>
+            </>
+          )}
         </nav>
-        {showRentals ? (
+        {showAdmin && me.role === 'ADMIN' ? (
+          <AdminPage />
+        ) : showRentals ? (
           <MyRentalsPage />
         ) : gameId === null ? (
           <GamesPage onSelect={setGameId} />

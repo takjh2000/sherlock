@@ -50,6 +50,11 @@ public class Member {
 		this.active = false;
 	}
 
+	/** 비밀번호를 지워 다시 첫 로그인(비밀번호 설정) 상태로 되돌린다. */
+	public void resetPassword() {
+		this.passwordHash = null;
+	}
+
 	public Long getId() {
 		return id;
 	}
