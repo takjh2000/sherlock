@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { gameApi, type GameCategory, type GameSummary, type Page } from './api'
+import { gameApi, rentalApi, type GameCategory, type GameSummary, type Page } from './api'
 
 type Props = {
   onSelect: (id: number) => void
@@ -18,6 +18,21 @@ export default function GamesPage({ onSelect }: Props) {
   const [page, setPage] = useState(0)
   const [result, setResult] = useState<Page<GameSummary> | null>(null)
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  // 대여 후 목록(가능 수량)을 다시 불러오기 위한 값
+  const [reloadKey, setReloadKey] = useState(0)
+
+  async function handleRent(game: GameSummary) {
+    setError('')
+    setMessage('')
+    try {
+      const rental = await rentalApi.rent(game.id)
+      setMessage(`${game.name}을(를) 대여했습니다. 반납 예정일은 ${rental.dueDate}입니다.`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '대여에 실패했습니다.')
+    }
+    setReloadKey((k) => k + 1)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -34,7 +49,7 @@ export default function GamesPage({ onSelect }: Props) {
     return () => {
       cancelled = true
     }
-  }, [keyword, category, availableOnly, page])
+  }, [keyword, category, availableOnly, page, reloadKey])
 
   return (
     <section>
@@ -85,6 +100,7 @@ export default function GamesPage({ onSelect }: Props) {
       </label>
 
       {error && <p role="alert">{error}</p>}
+      {message && <p role="status">{message}</p>}
       {result && result.content.length === 0 && <p>조건에 맞는 게임이 없습니다.</p>}
       <ul>
         {result?.content.map((game) => (
@@ -95,6 +111,13 @@ export default function GamesPage({ onSelect }: Props) {
             <span>
               대여 가능 {game.availableQuantity}/{game.totalQuantity}
             </span>
+            <button
+              type="button"
+              disabled={game.availableQuantity === 0}
+              onClick={() => handleRent(game)}
+            >
+              대여
+            </button>
             {game.owner && <span> · 소유자 {game.owner}</span>}
             {game.latestNote && <p>특이사항: {game.latestNote.content}</p>}
           </li>
