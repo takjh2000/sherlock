@@ -140,6 +140,28 @@ describe('AdminPage', () => {
     expect(upload.init?.headers).toEqual({})
   })
 
+  it('게임 엑셀 가져오기는 multipart로 보내고 신규/갱신/실패 요약과 실패 사유를 보여준다', async () => {
+    const calls = mockFetch((path) =>
+      path === '/api/admin/games/import'
+        ? {
+            created: 3,
+            updated: 2,
+            failed: [{ sheet: '보드게임_현황', row: 9, name: '가짜게임', reason: '전체 수량은 1 이상의 정수여야 합니다.' }],
+          }
+        : undefined,
+    )
+    render(<AdminPage />)
+    const file = new File(['fake'], 'games.xlsx')
+    await userEvent.upload(await screen.findByLabelText(/게임 목록 엑셀/), file)
+
+    expect(await screen.findByText('신규 3건, 갱신 2건, 실패 1건')).toBeInTheDocument()
+    expect(
+      screen.getByText(/보드게임_현황 9행 가짜게임: 전체 수량은 1 이상의 정수여야 합니다./),
+    ).toBeInTheDocument()
+    const upload = calls.find((c) => c.path === '/api/admin/games/import')!
+    expect(upload.init?.body).toBeInstanceOf(FormData)
+  })
+
   it('대여 현황에서 연체 목록, 회원별 누적을 보여주고 강제 반납한다', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const calls = mockFetch()

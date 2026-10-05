@@ -4,6 +4,7 @@ import {
   type AdminGame,
   type AdminGameDetail,
   type GameCategory,
+  type GameImportResult,
   type GameInput,
   type Page,
 } from './api'
@@ -27,6 +28,7 @@ export default function AdminGamesPanel() {
   const [error, setError] = useState('')
   // null: 편집 없음, 'new': 새 게임, 객체: 기존 게임 편집
   const [editing, setEditing] = useState<AdminGameDetail | 'new' | null>(null)
+  const [importResult, setImportResult] = useState<GameImportResult | null>(null)
 
   const load = useCallback(() => {
     return adminApi
@@ -47,6 +49,18 @@ export default function AdminGamesPanel() {
       setEditing(await adminApi.game(id))
     } catch (err) {
       setError(message(err, '불러오지 못했습니다.'))
+    }
+  }
+
+  async function handleImport(file: File | undefined) {
+    if (!file) return
+    setImportResult(null)
+    try {
+      setImportResult(await adminApi.importGames(file))
+      setError('')
+      await load()
+    } catch (err) {
+      setError(message(err, '엑셀 가져오기에 실패했습니다.'))
     }
   }
 
@@ -90,6 +104,39 @@ export default function AdminGamesPanel() {
           게임 추가
         </button>
       </div>
+
+      <div>
+        <label>
+          게임 목록 엑셀(xlsx) 가져오기
+          <input
+            type="file"
+            accept=".xlsx"
+            onChange={(e) => {
+              void handleImport(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+        </label>
+        <small>
+          {' '}
+          시트 &quot;보드게임_현황&quot;, &quot;크라임씬_현황&quot;만 읽습니다 (최대 5MB). 같은 분류·이름은 수량/소유자를
+          갱신합니다.
+        </small>
+      </div>
+      {importResult && (
+        <div role="status">
+          <p>
+            신규 {importResult.created}건, 갱신 {importResult.updated}건, 실패 {importResult.failed.length}건
+          </p>
+          <ul aria-label="가져오기 실패 목록">
+            {importResult.failed.map((f) => (
+              <li key={`${f.sheet}-${f.row}`}>
+                {f.sheet} {f.row}행 {f.name}: {f.reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {editing && (
         <GameEditor
