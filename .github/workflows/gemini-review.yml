@@ -44,7 +44,7 @@ jobs:
         id: review
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          MODELS: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }} ${{ vars.GEMINI_FALLBACK_MODEL }}
         run: |
           gh pr diff "$PR" | head -n 3000 > diff.txt
           touch CLAUDE.md GEMINI.md
@@ -56,15 +56,20 @@ jobs:
             generationConfig: { maxOutputTokens: 16384 }
           }' > /tmp/req.json
 
-          # 서버 과부하(503/500)는 최대 4번까지 간격을 늘려 재시도
-          for i in 1 2 3 4; do
-            curl -sS -H "x-goog-api-key: $GEMINI_API_KEY" -H "Content-Type: application/json" \
-              "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent" \
-              -d @/tmp/req.json > /tmp/res.json
+          # 모델별로 최대 3번 재시도, 계속 실패하면 예비 모델로 전환
+          for MODEL in $MODELS; do
+            for i in 1 2 3; do
+              curl -sS -H "x-goog-api-key: $GEMINI_API_KEY" -H "Content-Type: application/json" \
+                "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent" \
+                -d @/tmp/req.json > /tmp/res.json
+              CODE=$(jq -r '.error.code // 0' /tmp/res.json)
+              if [ "$CODE" != "503" ] && [ "$CODE" != "500" ]; then break; fi
+              echo "${MODEL} 일시 오류(${CODE}), $((i*20))초 후 재시도 (${i}/3)"
+              sleep $((i*20))
+            done
             CODE=$(jq -r '.error.code // 0' /tmp/res.json)
-            if [ "$CODE" != "503" ] && [ "$CODE" != "500" ]; then break; fi
-            echo "Gemini 일시 오류(${CODE}), $((i*30))초 후 재시도 (${i}/4)"
-            sleep $((i*30))
+            if [ "$CODE" = "0" ]; then break; fi
+            echo "${MODEL} 실패(${CODE}), 다음 모델로 전환"
           done
 
           jq -r '.candidates[0].content.parts // [] | map(select(.thought != true) | .text // "") | join("")' /tmp/res.json > /tmp/review.md
