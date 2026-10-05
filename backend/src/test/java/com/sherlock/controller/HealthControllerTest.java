@@ -29,6 +29,6 @@ class HealthControllerTest {
     @Test
     void 다른_경로는_인증이_필요하다() throws Exception {
         mockMvc.perform(get("/api/games"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }
