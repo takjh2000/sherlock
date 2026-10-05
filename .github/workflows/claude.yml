@@ -49,4 +49,4 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --allowedTools "Bash(curl:*),Bash(unzip:*),Bash(chmod:*),Bash(./gradlew:*),Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(java:*),Bash(ls:*),Bash(cat:*),Bash(mkdir:*),Bash(mv:*),Bash(rm:*),Bash(git:*)"
+            --allowedTools "Bash(curl:*),Bash(unzip:*),Bash(chmod:*),Bash(./gradlew:*),Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(java:*),Bash(ls:*),Bash(cat:*),Bash(mkdir:*),Bash(mv:*),Bash(rm:*),Bash(git:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
