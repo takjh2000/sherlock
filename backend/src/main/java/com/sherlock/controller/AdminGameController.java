@@ -3,14 +3,19 @@ package com.sherlock.controller;
 import com.sherlock.domain.GameCategory;
 import com.sherlock.dto.AdminGameDetailResponse;
 import com.sherlock.dto.AdminGameResponse;
+import com.sherlock.dto.GameImportResponse;
 import com.sherlock.dto.GameNoteResponse;
 import com.sherlock.dto.GameRequest;
 import com.sherlock.dto.NoteRequest;
 import com.sherlock.dto.PageResponse;
+import com.sherlock.service.AdminException;
+import com.sherlock.service.AdminGameImportService;
 import com.sherlock.service.AdminGameService;
 import com.sherlock.service.GameQueryService;
 import jakarta.validation.Valid;
+import java.io.IOException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,17 +28,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /** 게임/특이사항 관리. ADMIN 전용(SecurityConfig의 /api/admin/**). */
 @RestController
 @RequestMapping("/api/admin")
 public class AdminGameController {
 
+	static final long MAX_IMPORT_FILE_BYTES = 5L * 1024 * 1024;
+
 	private final AdminGameService adminGameService;
+	private final AdminGameImportService adminGameImportService;
 	private final GameQueryService gameQueryService;
 
-	public AdminGameController(AdminGameService adminGameService, GameQueryService gameQueryService) {
+	public AdminGameController(AdminGameService adminGameService, AdminGameImportService adminGameImportService,
+			GameQueryService gameQueryService) {
 		this.adminGameService = adminGameService;
+		this.adminGameImportService = adminGameImportService;
 		this.gameQueryService = gameQueryService;
 	}
 
@@ -57,6 +68,20 @@ public class AdminGameController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public AdminGameDetailResponse create(@Valid @RequestBody GameRequest body) {
 		return adminGameService.create(body);
+	}
+
+	/** 기존 엑셀 게임 목록(xlsx) 가져오기. 파트 이름은 file, 크기는 5MB까지. */
+	@PostMapping(path = "/games/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public GameImportResponse importExcel(@RequestParam("file") MultipartFile file,
+			Authentication authentication) {
+		if (file.getSize() > MAX_IMPORT_FILE_BYTES) {
+			throw new AdminException(HttpStatus.PAYLOAD_TOO_LARGE, "FILE_TOO_LARGE", "파일은 5MB까지 올릴 수 있습니다.");
+		}
+		try {
+			return adminGameImportService.importFromExcel(authentication.getName(), file.getInputStream());
+		} catch (IOException e) {
+			throw new AdminException(HttpStatus.BAD_REQUEST, "INVALID_FILE", "파일을 읽을 수 없습니다.");
+		}
 	}
 
 	@PutMapping("/games/{id}")

@@ -160,6 +160,12 @@ export type MemberImportResult = {
   skipped: { row: number; studentId: string; reason: string }[]
 }
 
+export type GameImportResult = {
+  created: number
+  updated: number
+  failed: { sheet: string; row: number; name: string; reason: string }[]
+}
+
 export type AdminRental = {
   id: number
   gameId: number
@@ -206,6 +212,11 @@ export const adminApi = {
     request<GameNote>(`/api/admin/games/${gameId}/notes`, json('POST', { content })),
   updateNote: (noteId: number, content: string) =>
     request<GameNote>(`/api/admin/notes/${noteId}`, json('PUT', { content })),
+  importGames: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request<GameImportResult>('/api/admin/games/import', { method: 'POST', body: form })
+  },
   deleteNote: (noteId: number) => request<void>(`/api/admin/notes/${noteId}`, json('DELETE')),
 
   members: (keyword: string, page: number) => {
