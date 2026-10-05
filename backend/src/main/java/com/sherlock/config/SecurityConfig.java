@@ -3,6 +3,9 @@ package com.sherlock.config;
 import com.sherlock.repository.MemberRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -41,6 +44,19 @@ public class SecurityConfig {
                 .addFilterBefore(new SessionValidationFilter(memberRepository), AuthorizationFilter.class)
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
+        return http.build();
+    }
+
+    // H2 콘솔 전용 필터 체인. dev 프로필에서만 등록되므로 prod에서는 /h2-console/**도 일반 인증 규칙을 따른다.
+    @Bean
+    @Profile("dev")
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    SecurityFilterChain h2ConsoleFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/h2-console/**")
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         return http.build();
     }
 

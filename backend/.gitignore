@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# 로컬 dev 프로필 H2 파일 DB
+data/

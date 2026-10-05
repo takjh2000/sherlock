@@ -1,0 +1,13 @@
+# 개발 프로필(SPRING_PROFILES_ACTIVE=dev): 로컬 전용. 운영에서는 절대 사용하지 않는다.
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/sherlock-dev;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
