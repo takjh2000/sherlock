@@ -56,9 +56,16 @@ jobs:
             generationConfig: { maxOutputTokens: 16384 }
           }' > /tmp/req.json
 
-          curl -sS -H "x-goog-api-key: $GEMINI_API_KEY" -H "Content-Type: application/json" \
-            "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent" \
-            -d @/tmp/req.json > /tmp/res.json
+          # 서버 과부하(503/500)는 최대 4번까지 간격을 늘려 재시도
+          for i in 1 2 3 4; do
+            curl -sS -H "x-goog-api-key: $GEMINI_API_KEY" -H "Content-Type: application/json" \
+              "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent" \
+              -d @/tmp/req.json > /tmp/res.json
+            CODE=$(jq -r '.error.code // 0' /tmp/res.json)
+            if [ "$CODE" != "503" ] && [ "$CODE" != "500" ]; then break; fi
+            echo "Gemini 일시 오류(${CODE}), $((i*30))초 후 재시도 (${i}/4)"
+            sleep $((i*30))
+          done
 
           jq -r '.candidates[0].content.parts // [] | map(select(.thought != true) | .text // "") | join("")' /tmp/res.json > /tmp/review.md
 
