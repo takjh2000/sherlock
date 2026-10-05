@@ -1,6 +1,12 @@
 spring:
   application:
     name: backend
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
 ---
 # 운영 프로필: 접속 정보는 환경변수로만 주입한다.
 spring:
