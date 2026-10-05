@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { authApi, type Me } from './api'
+import GameDetailPage from './GameDetailPage'
+import GamesPage from './GamesPage'
 import LoginPage from './LoginPage'
 import SetupPasswordPage from './SetupPasswordPage'
 import './App.css'
@@ -11,6 +13,8 @@ function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined)
   const [view, setView] = useState<View>('login')
   const [studentId, setStudentId] = useState('')
+  // 선택한 게임 id. null이면 목록을 보여준다.
+  const [gameId, setGameId] = useState<number | null>(null)
 
   // 새로고침해도 서버 세션(쿠키)으로 로그인 상태를 복원한다.
   useEffect(() => {
@@ -23,6 +27,7 @@ function App() {
   async function handleLogout() {
     await authApi.logout().catch(() => undefined)
     setMe(null)
+    setGameId(null)
     setView('login')
   }
 
@@ -38,6 +43,11 @@ function App() {
         <button type="button" onClick={handleLogout}>
           로그아웃
         </button>
+        {gameId === null ? (
+          <GamesPage onSelect={setGameId} />
+        ) : (
+          <GameDetailPage id={gameId} onBack={() => setGameId(null)} />
+        )}
       </section>
     )
   }
