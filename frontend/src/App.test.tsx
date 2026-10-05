@@ -30,10 +30,11 @@ describe('App', () => {
   })
 
   it('세션이 있으면 로그인 상태가 유지된다', async () => {
-    mockFetch(() => ({
-      status: 200,
-      body: { studentId: '20240001', name: '홍길동', role: 'MEMBER' },
-    }))
+    mockFetch((path) =>
+      path.startsWith('/api/games')
+        ? { status: 200, body: { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 } }
+        : { status: 200, body: { studentId: '20240001', name: '홍길동', role: 'MEMBER' } },
+    )
     render(<App />)
     expect(await screen.findByText(/홍길동님 환영합니다/)).toBeInTheDocument()
   })

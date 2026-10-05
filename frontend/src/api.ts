@@ -33,6 +33,57 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json()
 }
 
+export type GameCategory = 'BOARD_GAME' | 'CRIME_SCENE'
+
+export type GameNote = {
+  content: string
+  authorName: string
+  createdAt: string
+}
+
+export type GameSummary = {
+  id: number
+  name: string
+  category: GameCategory
+  owner: string | null
+  totalQuantity: number
+  availableQuantity: number
+  latestNote: GameNote | null
+}
+
+export type GameDetail = Omit<GameSummary, 'latestNote'> & {
+  notes: GameNote[]
+}
+
+export type Page<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+export type GameSearch = {
+  keyword: string
+  category: GameCategory
+  availableOnly: boolean
+  page: number
+}
+
+export const gameApi = {
+  list: ({ keyword, category, availableOnly, page }: GameSearch) => {
+    const params = new URLSearchParams({
+      category,
+      availableOnly: String(availableOnly),
+      page: String(page),
+      size: '20',
+    })
+    if (keyword.trim()) params.set('keyword', keyword.trim())
+    return request<Page<GameSummary>>(`/api/games?${params}`)
+  },
+  detail: (id: number) => request<GameDetail>(`/api/games/${id}`),
+}
+
 export const authApi = {
   me: () => request<Me>('/api/auth/me'),
   login: (studentId: string, password: string) =>
