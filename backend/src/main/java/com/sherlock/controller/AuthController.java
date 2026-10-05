@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sherlock.config.SessionValidationFilter;
 import com.sherlock.domain.Member;
 import com.sherlock.dto.ErrorResponse;
 import com.sherlock.dto.LoginRequest;
@@ -59,6 +60,7 @@ public class AuthController {
 		context.setAuthentication(authentication);
 		SecurityContextHolder.setContext(context);
 		securityContextRepository.saveContext(context, request, response);
+		SessionValidationFilter.remember(request, member);
 		return MeResponse.from(member);
 	}
 

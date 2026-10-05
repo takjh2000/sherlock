@@ -126,9 +126,8 @@ class AuthIntegrationTest {
 	void 관리자는_관리자_경로의_권한_검사를_통과한다() throws Exception {
 		MockHttpSession session = login("20200001", "adminpass123");
 
-		// 아직 컨트롤러가 없어 404이면 인가는 통과한 것이다.
 		mockMvc.perform(get("/api/admin/games").session(session))
-				.andExpect(status().isNotFound());
+				.andExpect(status().isOk());
 	}
 
 	@Test
