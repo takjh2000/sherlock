@@ -24,7 +24,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	// 회원 명단 엑셀(xlsx) 일괄 등록
-	implementation("org.apache.poi:poi-ooxml:5.4.1")
+	implementation("org.apache.poi:poi-ooxml:5.5.1")
 	runtimeOnly("com.h2database:h2")
 	runtimeOnly("org.postgresql:postgresql")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
